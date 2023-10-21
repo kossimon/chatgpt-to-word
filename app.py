@@ -10,6 +10,13 @@ hide_streamlit_style = """
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
+hide_decoration_bar_style = '''
+    <style>
+        header {visibility: hidden;}
+    </style>
+'''
+st.markdown(hide_decoration_bar_style, unsafe_allow_html=True)
+
 # Step 3: Create UI elements
 markdown_text = st.text_area('', height=500)
 convert_button = st.button('Vytvořit Microsoft Word')
