@@ -1,2 +1,4 @@
 docx
 python-docx
+streamlit
+re
