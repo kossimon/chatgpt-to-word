@@ -53,3 +53,5 @@ docs/_build/
 .ideas
 .dump
 .DS_Store
+
+myenv
