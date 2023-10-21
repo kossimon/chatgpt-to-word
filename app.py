@@ -1,6 +1,9 @@
 import streamlit as st
 from format import markdown_to_docx
 import re
+import tempfile
+import shutil
+import os
 
 hide_streamlit_style = """
 <style>
