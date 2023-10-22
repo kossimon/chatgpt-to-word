@@ -198,8 +198,6 @@ def process_bullets(line_info, doc):
 
     return False  # The line was not a bullet point
 
-import re
-
 def process_numbered_lists(line_info, doc):
     # Check if the current line starts with a markdown numbered list format
     line = line_info['content']
@@ -212,11 +210,13 @@ def process_numbered_lists(line_info, doc):
         # Extract the actual content, including the markdown numbered prefix (e.g., "1. ")
         number = line[:match.end()]  # Include the numbers and period
         content = line[match.end():]  # Extract the content after the numbers
+
+        number = '*' + number + '* '
         whole = number + content
 
         # Create a new paragraph and set the line height to 1.0
         number_item = doc.add_paragraph()
-        number_item.paragraph_format.line_spacing = 1.0
+        number_item.paragraph_format.line_spacing = 0.9
 
         # Apply the indent level
         number_item.paragraph_format.left_indent = Inches(0.25 * indent_level)  # 36 points per indent level (adjust as needed)
