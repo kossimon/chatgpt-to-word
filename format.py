@@ -207,19 +207,69 @@ def process_bullets(line_info, doc):
 
     return False  # The line was not a bullet point
 
+def process_numbered_lists(line_info, doc):
+    # Check if the current line starts with a markdown numbered list format
+    line = line_info['content']
+    indent_level = line_info['indent']
+
+    # This regular expression matches lines that start with "1. ", "2. ", etc.
+    # It handles multi-digit numbers and a single following space.
+    match = re.match(r'(\d+\.)+\s', line)
+    if match:
+        # Extract the actual content, excluding the markdown numbered prefix (e.g., "1. ")
+        content = line[match.end():]  # Strip the numbers and period, leave the content.
+        
+        #Debugging
+        content += 'THIS GOT NUMBERED'
+
+        # Depending on the indent level, we might want to adjust the style
+        if indent_level == 0:
+            style = 'List Number'
+        elif indent_level == 1:
+            style = 'List Number 2'  # Assuming 'List Number 2' is defined in your Word styles
+        elif indent_level == 2:
+            style = 'List Number 3'  # Assuming 'List Number 3' is defined in your Word styles
+        else:
+            style = 'List Number'  # Default to normal numbering for deeper indents or unexpected cases
+
+        # Create a new numbered list item with the specified style
+        number_item = doc.add_paragraph(style=style)
+
+        # Instead of adding text directly, process the content for formatting
+        runs = process_for_formatting(content)
+        runs = process_for_superscript(runs)
+        for run_text, run_style in runs:
+            add_run(number_item, run_text, run_style)  # Apply the styles per run
+
+        return True  # The line was a numbered list item and was processed
+
+    return False  # The line was not a numbered list item
+
+
 
 def process_lines(doc, lines):
     for line_info in lines:
+        # If the line is a heading, a bullet point, or a numbered list, it's processed inside these functions
         if process_headings(line_info['content'], doc):
             continue
         elif process_bullets(line_info, doc):
             continue
+        elif process_numbered_lists(line_info, doc):
+            continue
         else:
+            # If the line is a regular line (not a heading, bullet, or numbered list), create a new paragraph for it
             paragraph = doc.add_paragraph()
+
+            # Adjust the left indent based on the indentation level.
+            if line_info['indent'] > 0:
+                paragraph.paragraph_format.left_indent = Inches(0.25 * line_info['indent'])
+
+            # Process the content for formatting (bold, italic, etc.)
             runs = process_for_formatting(line_info['content'])
             runs = process_for_superscript(runs)
             for run_text, run_style in runs:
                 add_run(paragraph, run_text, run_style)
+
 
 
 
