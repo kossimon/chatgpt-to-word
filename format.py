@@ -2,32 +2,43 @@ import re
 import docx
 from docx.shared import Inches
 
-
-def preprocess(markdown_text):
-    """
-    Preprocess the markdown text to replace certain patterns with a standardized notation.
-    """
-    # Split the text into lines
+def indentate_lines(markdown_text):
     lines = markdown_text.split('\n')
+    indentated = []
 
-    # Find lines that are marked to be converted to heading 2
+    for line in lines:
+        indent_level = 0
+
+        # Count the number of double spaces at the start of the line
+        while line.startswith('  '):
+            indent_level += 1
+            line = line[2:]  # Remove the counted double space
+
+        indentated.append({'content': line, 'indent': indent_level})
+
+    return indentated
+
+
+def preprocess(indentated_lines):
+    # We're directly dealing with dictionaries inside the list here.
+    # So, each 'line_info' is a dictionary with 'content' and 'indent'.
+    
+    # First, we process the lines for heading styles.
     heading_2_indices = set()
-    for i in range(0,len(lines)):
-        if lines[i].startswith("---") and lines[i - 1].strip():
-            lines[i] = ""
+    for i, line_info in enumerate(indentated_lines):
+        if line_info['content'].startswith("---") and i > 0 and indentated_lines[i - 1]['content'].strip():
+            indentated_lines[i]['content'] = ""  # Clear the current '---' line
             heading_2_indices.add(i - 1)
-    
-    # Apply the replace_pattern function on each line and mark certain lines as heading 2
-    for i, line in enumerate(lines):
-        lines[i] = replace_pattern(line)
+
+    # Apply transformations on each line's content.
+    for i, line_info in enumerate(indentated_lines):
+        line = replace_pattern(line_info['content'])
         if i in heading_2_indices:
-            print(lines[i])
-            print(f'## {lines[i]}')
-            lines[i] = "## " + lines[i]
-            print(lines[i])
-    
-    # Join the lines back into a single string
-    return lines
+            line = "## " + line  # Add Markdown heading syntax for level 2 headings
+        indentated_lines[i]['content'] = line  # Update the content after transformations
+
+    return indentated_lines
+
 
 def replace_pattern(s):
     s = re.sub(r'\[\^(.*?)\^\]', r'^\1', s)
@@ -36,13 +47,8 @@ def replace_pattern(s):
     return s
 
 def process_for_formatting(line):
-    '''
-    Process the lines and finds standard notation for formatting and creates runs.
-    '''
     runs = []
     i = 0
-
-    # Special handling for lines starting with ^\d+ for bold numbers
     if line.startswith('^') and re.match(r"^\^\d+", line):
         match = re.match(r"^\^(\d+)", line)
         if match:
@@ -50,9 +56,8 @@ def process_for_formatting(line):
             i += len(match.group(0))
 
     while i < len(line):
-        # Superscript within the line (we'll handle it later in process_for_superscript)
         if line[i] == '^':
-            end_sup = line.find(' ', i)  # We assume that superscript ends at a space
+            end_sup = line.find(' ', i)
             if end_sup != -1:
                 runs.append((line[i:end_sup], 'normal'))
                 i = end_sup
@@ -60,8 +65,7 @@ def process_for_formatting(line):
                 runs.append((line[i:], 'normal'))
                 i = len(line)
             continue
-
-        if line[i:i+3] == '***':  # Bold and Italic
+        elif line[i:i+3] == '***':
             end_bold_italic = line.find('***', i + 3)
             if end_bold_italic != -1:
                 runs.append((line[i+3:end_bold_italic], 'bold_italic'))
@@ -69,11 +73,10 @@ def process_for_formatting(line):
             else:
                 runs.append((line[i], 'normal'))
                 i += 1
-
-        elif line[i:i+2] == '**':  # Bold
+        elif line[i:i+2] == '**':
             end_bold = line.find('**', i + 2)
             if end_bold != -1:
-                inner_runs = process_for_formatting(line[i+2:end_bold])  # Recursive call to handle nested formatting
+                inner_runs = process_for_formatting(line[i+2:end_bold])
                 for run_text, run_style in inner_runs:
                     if run_style == 'italic':
                         runs.append((run_text, 'bold_italic'))
@@ -83,8 +86,7 @@ def process_for_formatting(line):
             else:
                 runs.append((line[i], 'normal'))
                 i += 1
-
-        elif line[i] == '*':  # Italic
+        elif line[i] == '*':
             end_italic = line.find('*', i + 1)
             if end_italic != -1:
                 runs.append((line[i+1:end_italic], 'italic'))
@@ -92,7 +94,6 @@ def process_for_formatting(line):
             else:
                 runs.append((line[i], 'normal'))
                 i += 1
-
         else:
             next_bold = line.find('**', i)
             next_italic = line.find('*', i)
@@ -100,16 +101,12 @@ def process_for_formatting(line):
             next_superscript = line.find('^', i)
 
             next_special = min([pos for pos in [next_bold, next_italic, next_bold_italic, next_superscript] if pos != -1], default=len(line))
-
             runs.append((line[i:next_special], 'normal'))
             i = next_special
 
     return runs
 
 def process_for_superscript(runs):
-    """
-    Post-process the runs to handle superscript.
-    """
     processed_runs = []
 
     for run_text, run_style in runs:
@@ -134,168 +131,115 @@ def process_for_superscript(runs):
 
     return processed_runs
 
-def process_for_numbered_lists(lines):
-    """
-    Post-process the lines to handle numbered lists.
-    """
-    processed_lines = []
-    in_numbered_list = False
 
-    for line in lines:
-        if re.match(r"\d+\.", line.strip()):
-            if not in_numbered_list:
-                in_numbered_list = True
-                processed_lines.append({"type": "start_numbered_list"})
-            # Extract the number and the content after it
-            num, content = line.strip().split('.', 1)
-            processed_lines.append({"type": "list_item", "content": content.strip()})
-        else:
-            if in_numbered_list:
-                in_numbered_list = False
-                processed_lines.append({"type": "end_numbered_list"})
-            processed_lines.append({"type": "normal", "content": line})
-
-    if in_numbered_list:
-        processed_lines.append({"type": "end_numbered_list"})
-
-    return processed_lines
-
-def process_for_bullet_points(lines):
-    """
-    Post-process the lines to handle bullet points.
-    """
-    processed_lines = []
-    in_bullet_point_list = False
-
-    for line in lines:
-        if isinstance(line, dict):
-            processed_lines.append(line)
-            continue
-
-        if line.strip().startswith('- ') or line.strip().startswith('* '):
-            if not in_bullet_point_list:
-                in_bullet_point_list = True
-                processed_lines.append({"type": "start_bullet_point_list"})
-            content = line.strip()[2:]
-            processed_lines.append({"type": "bullet_point", "content": content})
-        else:
-            if in_bullet_point_list:
-                in_bullet_point_list = False
-                processed_lines.append({"type": "end_bullet_point_list"})
-            processed_lines.append(line)
-
-    if in_bullet_point_list:
-        processed_lines.append({"type": "end_bullet_point_list"})
-
-    return processed_lines
-
-
-def get_heading_level(content):
-    """
-    Check for headings and return the level (0-5) and content without the markdown. 
-    If not a heading, return None.
-    """
-    headings = [
-        ("# ", 0),
-        ("## ", 1),
-        ("### ", 2),
-        ("#### ", 3),
-        ("##### ", 4),
-        ("###### ", 5)
-    ]
-    for prefix, level in headings:
-        if content.startswith(prefix):
-            return level, content[len(prefix):]
-    return None, content
-
-def process_run_styles(run, run_style):
-    """
-    Set the styles for a run based on the given run_style.
-    """
-    if 'bold' in run_style:
+def add_run(paragraph, text, style):
+    run = paragraph.add_run(text)
+    if style == 'bold':
         run.bold = True
-    if 'italic' in run_style:
+    elif style == 'italic':
         run.italic = True
-    if 'superscript' in run_style:
+    elif style == 'bold_italic':
+        run.bold = True
+        run.italic = True
+    elif style == 'superscript':
+        run.font.superscript = True
+    elif style == 'bold_superscript':
+        run.bold = True
+        run.font.superscript = True
+    elif style == 'italic_superscript':
+        run.italic = True
+        run.font.superscript = True
+    elif style == 'bold_italic_superscript':
+        run.bold = True
+        run.italic = True
         run.font.superscript = True
 
-def add_runs_to_paragraph(paragraph, runs):
-    """
-    Process the runs and add them to the given paragraph.
-    """
-    for run_text, run_style in runs:
-        run = paragraph.add_run(run_text)
-        process_run_styles(run, run_style)
+def process_headings(line, doc):
+    # Define markdown heading levels
+    headings = [
+        ("# ", 1),
+        ("## ", 2),
+        ("### ", 3),
+        ("#### ", 4),
+        ("##### ", 5),
+        ("###### ", 6)
+    ]
 
-def process_line(doc, line, in_numbered_list, in_bullet_point_list):
-    """
-    Process a line and add its content to the document.
-    Return the updated in_numbered_list and in_bullet_point_list flags.
-    """
-    if line["type"] == "start_numbered_list":
-        return True, in_bullet_point_list
-    elif line["type"] == "end_numbered_list":
-        return False, in_bullet_point_list
-    elif line["type"] == "start_bullet_point_list":
-        return in_numbered_list, True
-    elif line["type"] == "end_bullet_point_list":
-        return in_numbered_list, False
+    # Check if the current line starts with a markdown heading prefix
+    for prefix, level in headings:
+        if line.startswith(prefix):
+            # Remove the markdown prefix from the heading text
+            text = line[len(prefix):]
+            # Add the heading to the document with the appropriate level
+            doc.add_heading(text, level=level)
+            return True  # Heading was processed
 
-    # Check for headings using the get_heading_level function
-    heading_level, content = get_heading_level(line["content"])
+    return False  # No heading was found
 
-    # Check for leading spaces
-    leading_spaces = len(content) - len(content.lstrip(' '))
-    indentation_level = leading_spaces // 2 * 0.25  # For each two spaces, we indent 0.25 inches
+def process_bullets(line_info, doc):
+    # Check if the current line starts with the bullet point markdown
+    line = line_info['content']
+    indent_level = line_info['indent']
+    if line.startswith("- "):
+        # Extract the actual content, excluding the markdown bullet point ("- ")
+        content = line[2:]
 
-    # Remove the leading spaces from the content
-    content = content.lstrip()
+        # Depending on the indent level, we might want to adjust the style
+        if indent_level == 0:
+            style = 'List Bullet'
+        elif indent_level == 1:
+            style = 'List Bullet 2'  # Assuming 'List Bullet 2' is defined in your Word styles
+        elif indent_level == 2:
+            style = 'List Bullet 3'  # Assuming 'List Bullet 3' is defined in your Word styles
+        else:
+            style = 'List Bullet'  # Default to normal bullets for deeper indents or unexpected cases
 
-    # Process the line for formatting
-    runs = process_for_formatting(content)
-    # Further process the runs for superscript
-    runs = process_for_superscript(runs)
+        # Create a new bullet point with the specified style
+        bullet = doc.add_paragraph(style=style)
 
-    # If the line was identified as a heading, add it as a heading
-    if heading_level is not None:
-        heading = doc.add_heading('', level=heading_level)
-        add_runs_to_paragraph(heading, runs)
-    elif in_numbered_list or line["type"] == "list_item":
-        paragraph = doc.add_paragraph(style='ListNumber')
-        add_runs_to_paragraph(paragraph, runs)
-    elif in_bullet_point_list or line["type"] == "bullet_point":
-        paragraph = doc.add_paragraph(style='ListBullet')
-        add_runs_to_paragraph(paragraph, runs)
-    else:
-        # For normal lines
-        paragraph = doc.add_paragraph()
-        # Set the indentation for the paragraph if there were leading spaces
-        if indentation_level:
-            paragraph.paragraph_format.left_indent = docx.shared.Inches(indentation_level)
-        add_runs_to_paragraph(paragraph, runs)
+        # Instead of adding text directly, process the content for formatting
+        runs = process_for_formatting(content)
+        runs = process_for_superscript(runs)
+        for run_text, run_style in runs:
+            add_run(bullet, run_text, run_style)  # Apply the styles per run
 
-    return in_numbered_list, in_bullet_point_list
+        return True  # The line was a bullet point and was processed
 
-def markdown_to_docx(markdown_text,filename):
+    return False  # The line was not a bullet point
+
+
+def process_lines(doc, lines):
+    for line_info in lines:
+        if process_headings(line_info['content'], doc):
+            continue
+        elif process_bullets(line_info, doc):
+            continue
+        else:
+            paragraph = doc.add_paragraph()
+            runs = process_for_formatting(line_info['content'])
+            runs = process_for_superscript(runs)
+            for run_text, run_style in runs:
+                add_run(paragraph, run_text, run_style)
+
+
+
+def markdown_to_docx(markdown_text, filename):
     doc = docx.Document()
 
-    # Preprocess the markdown text
-    lines = preprocess(markdown_text)
+    # Indentate lines before processing
+    indentated_lines = indentate_lines(markdown_text)
 
-    # Post-process for numbered lists
-    lines = process_for_numbered_lists(lines)
-    
-    # Post-process for bullet points
-    lines = process_for_bullet_points(lines)
+    # Preprocess the lines. Note that we're passing the list of line dictionaries here,
+    # not a single string.
+    preprocessed_lines = preprocess(indentated_lines)
 
-    in_numbered_list = False
-    in_bullet_point_list = False
+    # The remaining part of your function stays the same
+    process_lines(doc, preprocessed_lines)
 
-    for line in lines:
-        in_numbered_list, in_bullet_point_list = process_line(doc, line, in_numbered_list, in_bullet_point_list)
-    
-    filename = filename[:42]
+    filename = filename[:42]  # Ensure the filename is not excessively long
     file_path = f"{filename}.docx"
     doc.save(file_path)
 
     return file_path
+
+
