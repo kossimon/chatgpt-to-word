@@ -187,6 +187,8 @@ def process_bullets(line_info, doc):
 
         # Create a new bullet point with the specified style
         bullet = doc.add_paragraph(style=style)
+        bullet.paragraph_format.line_spacing = 1.15
+        bullet.paragraph_format.space_after = Inches(0.05)
 
         # Instead of adding text directly, process the content for formatting
         runs = process_for_formatting(content)

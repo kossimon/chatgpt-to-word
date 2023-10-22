@@ -24,6 +24,21 @@ markdown_text = st.text_area('Vložte obsah z ChatGPT zde',
                               label_visibility="collapsed")
 convert_button = st.button('Vytvořit Microsoft Word')
 
+# Style for the button
+button_style = """
+    <style>
+        .stButton>button {
+            background-color: #008CBA !important;
+            color: white !important;
+            padding: 10px 20px !important;
+            border: none !important;
+            border-radius: 5px !important;
+            cursor: pointer !important;
+        }
+    </style>
+"""
+st.markdown(button_style, unsafe_allow_html=True)
+
 # Step 4: Handle button click event
 if convert_button:
   if markdown_text:
