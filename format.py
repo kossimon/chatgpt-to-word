@@ -10,9 +10,9 @@ def indentate_lines(markdown_text):
         indent_level = 0
 
         # Count the number of double spaces at the start of the line
-        while line.startswith('   '):
+        while line.startswith('  '):
             indent_level += 1
-            line = line[3:]  # Remove the counted double space
+            line = line[2:]  # Remove the counted double space
 
         indentated.append({'content': line, 'indent': indent_level})
 
