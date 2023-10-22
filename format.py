@@ -16,7 +16,7 @@ def preprocess(markdown_text):
         if lines[i].startswith("---") and lines[i - 1].strip():
             lines[i] = ""
             heading_2_indices.add(i - 1)
-            
+    
     # Apply the replace_pattern function on each line and mark certain lines as heading 2
     for i, line in enumerate(lines):
         lines[i] = replace_pattern(line)
@@ -30,7 +30,10 @@ def preprocess(markdown_text):
     return lines
 
 def replace_pattern(s):
-    return re.sub(r'\[\^(.*?)\^\]', r'^\1', s)
+    s = re.sub(r'\[\^(.*?)\^\]', r'^\1', s)
+    s = re.sub(r'\[(.*?)\]', r'^\1', s)
+    s = re.sub(r'^\*\s', '- ', s)
+    return s
 
 def process_for_formatting(line):
     '''
