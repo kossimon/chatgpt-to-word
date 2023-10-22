@@ -216,7 +216,7 @@ def process_numbered_lists(line_info, doc):
 
         # Create a new paragraph and set the line height to 1.0
         number_item = doc.add_paragraph()
-        number_item.paragraph_format.line_spacing = 0.9
+        number_item.paragraph_format.line_spacing = 1.0
 
         # Apply the indent level
         number_item.paragraph_format.left_indent = Inches(0.25 * indent_level)  # 36 points per indent level (adjust as needed)
