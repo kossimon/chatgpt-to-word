@@ -4,19 +4,27 @@ from docx.shared import Inches
 
 def indentate_lines(markdown_text):
     lines = markdown_text.split('\n')
-    indentated = []
+    indented = []
 
+     # Initialize the count of spaces and the indent level.
+    # Iterate through each character in the line.
     for line in lines:
-        indent_level = 0
+        space_count = 0
+        for char in line:
+            if char == ' ':
+                # If the character is a space, increment the space_count.
+                space_count += 1
+            else:
+                # If a non-space character is encountered, break the loop.
+                break
 
-        # Count the number of double spaces at the start of the line
-        while line.startswith('  '):
-            indent_level += 1
-            line = line[2:]  # Remove the counted double space
+        # Map count of spaces to indent level
+        mapping = {0:0,2:1,3:1,4:2,5:2,6:2}
+        indent_level = mapping.get(space_count, 0)
 
-        indentated.append({'content': line, 'indent': indent_level})
-
-    return indentated
+        # Create and return the dictionary with the content and indent level.
+        indented.append({'content': line.strip(), 'indent': indent_level})
+    return indented
 
 
 def preprocess(indentated_lines):
