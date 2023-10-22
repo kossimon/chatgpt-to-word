@@ -1,6 +1,5 @@
 docx
 python-docx
 streamlit
-tempfile
 os
 shutil
