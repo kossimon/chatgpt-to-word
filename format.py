@@ -10,9 +10,9 @@ def indentate_lines(markdown_text):
         indent_level = 0
 
         # Count the number of double spaces at the start of the line
-        while line.startswith('  '):
+        while line.startswith('   '):
             indent_level += 1
-            line = line[2:]  # Remove the counted double space
+            line = line[3:]  # Remove the counted double space
 
         indentated.append({'content': line, 'indent': indent_level})
 
@@ -216,7 +216,8 @@ def process_numbered_lists(line_info, doc):
 
         # Create a new paragraph and set the line height to 1.0
         number_item = doc.add_paragraph()
-        number_item.paragraph_format.line_spacing = 1.0
+        number_item.paragraph_format.line_spacing = 1.15
+        number_item.paragraph_format.space_after = Inches(0.05)
 
         # Apply the indent level
         number_item.paragraph_format.left_indent = Inches(0.25 * indent_level)  # 36 points per indent level (adjust as needed)
