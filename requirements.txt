@@ -1,5 +1,2 @@
-docx
 python-docx
 streamlit
-os
-shutil
