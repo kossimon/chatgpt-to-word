@@ -32,7 +32,7 @@ button_style = """
             color: white !important;
             padding: 10px 20px !important;
             border: none !important;
-            border-radius: 5px !important;
+            border-radius: 1%px !important;
             cursor: pointer !important;
         }
     </style>
@@ -66,7 +66,7 @@ if convert_button:
         st.markdown(
             f'<a href="data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,{encoded_file}" '
             f'download="{filename}.docx">'
-            f'<button style="cursor: pointer; background-color: #008CBA; color: white; padding: 10px 20px; border: none; border-radius: 5px;">'
+            f'<button style="cursor: pointer; background-color: #008CBA; color: white; padding: 10px 20px; border: none; border-radius: 10px;">'
             f'Stáhnout Microsoft Word'
             f'</button>'
             f'</a>',
