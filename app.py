@@ -1,27 +1,26 @@
 import streamlit as st
 from format import markdown_to_docx
 import re
+import docx
+from docx.shared import Inches
 import tempfile
 import shutil
 import os
 
+
 hide_streamlit_style = """
 <style>
-    #root > div:nth-child(1) > div > div > div > div > section > div {padding-top: 1rem;}
+    #root > div:nth-child(1) > div > div > div > div > section > div {padding-top: 1rem;};
+  header {visibility: hidden;}
 </style>
 
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
-hide_decoration_bar_style = '''
-    <style>
-        header {visibility: hidden;}
-    </style>
-'''
-st.markdown(hide_decoration_bar_style, unsafe_allow_html=True)
-
 # Step 3: Create UI elements
-markdown_text = st.text_area('', height=500)
+markdown_text = st.text_area('Vložte obsah z ChatGPT zde',
+                             height=500,
+                             label_visibility="collapsed")
 convert_button = st.button('Vytvořit Microsoft Word')
 
 # Step 4: Handle button click event
