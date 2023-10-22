@@ -49,62 +49,52 @@ def replace_pattern(s):
 def process_for_formatting(line):
     runs = []
     i = 0
-    if line.startswith('^') and re.match(r"^\^\d+", line):
-        match = re.match(r"^\^(\d+)", line)
-        if match:
-            runs.append((match.group(1), 'bold'))
-            i += len(match.group(0))
+    inside_bold = False
+    inside_italic = False
 
     while i < len(line):
-        if line[i] == '^':
-            end_sup = line.find(' ', i)
-            if end_sup != -1:
-                runs.append((line[i:end_sup], 'normal'))
-                i = end_sup
-            else:
-                runs.append((line[i:], 'normal'))
-                i = len(line)
-            continue
-        elif line[i:i+3] == '***':
-            end_bold_italic = line.find('***', i + 3)
-            if end_bold_italic != -1:
-                runs.append((line[i+3:end_bold_italic], 'bold_italic'))
-                i = end_bold_italic + 3
-            else:
-                runs.append((line[i], 'normal'))
-                i += 1
-        elif line[i:i+2] == '**':
-            end_bold = line.find('**', i + 2)
-            if end_bold != -1:
-                inner_runs = process_for_formatting(line[i+2:end_bold])
-                for run_text, run_style in inner_runs:
-                    if run_style == 'italic':
-                        runs.append((run_text, 'bold_italic'))
-                    else:
-                        runs.append((run_text, 'bold'))
-                i = end_bold + 2
-            else:
-                runs.append((line[i], 'normal'))
-                i += 1
-        elif line[i] == '*':
-            end_italic = line.find('*', i + 1)
-            if end_italic != -1:
-                runs.append((line[i+1:end_italic], 'italic'))
-                i = end_italic + 1
-            else:
-                runs.append((line[i], 'normal'))
-                i += 1
-        else:
-            next_bold = line.find('**', i)
-            next_italic = line.find('*', i)
-            next_bold_italic = line.find('***', i)
-            next_superscript = line.find('^', i)
+        if line[i:i+3] == '***':
+            if not inside_bold and not inside_italic:
+                start = i + 3
+                end = line.find('***', start)
+                if end != -1:
+                    runs.append((line[start:end], 'bold_italic'))
+                    i = end + 3
+                    continue
+            # if the end marker was not found or we're inside other styles
+            runs.append((line[i:i+3], 'normal'))
+            i += 3
 
-            next_special = min([pos for pos in [next_bold, next_italic, next_bold_italic, next_superscript] if pos != -1], default=len(line))
-            runs.append((line[i:next_special], 'normal'))
-            i = next_special
+        elif line[i:i+2] == '**':
+            inside_bold = not inside_bold  # toggle the state
+            i += 2  # move past this marker
+
+        elif line[i] == '*':
+            inside_italic = not inside_italic  # toggle the state
+            i += 1  # move past this marker
+
+        else:
+            # Find the next marker, considering we are not at the start of a marker now
+            next_marker = len(line)
+            for marker in ['***', '**', '*']:
+                marker_pos = line.find(marker, i)
+                if marker_pos != -1:
+                    next_marker = min(next_marker, marker_pos)
+
+            style = 'normal'
+            if inside_bold and inside_italic:
+                style = 'bold_italic'
+            elif inside_bold:
+                style = 'bold'
+            elif inside_italic:
+                style = 'italic'
+
+            runs.append((line[i:next_marker], style))
+            i = next_marker  # move to the next marker position
 
     return runs
+
+
 
 def process_for_superscript(runs):
     processed_runs = []
@@ -130,6 +120,7 @@ def process_for_superscript(runs):
             i += 1
 
     return processed_runs
+
 
 
 def add_run(paragraph, text, style):
@@ -207,43 +198,39 @@ def process_bullets(line_info, doc):
 
     return False  # The line was not a bullet point
 
+import re
+
 def process_numbered_lists(line_info, doc):
     # Check if the current line starts with a markdown numbered list format
     line = line_info['content']
     indent_level = line_info['indent']
 
-    # This regular expression matches lines that start with "1. ", "2. ", etc.
+    # This regular expression matches lines that start with "1. ", "1.1. ", etc.
     # It handles multi-digit numbers and a single following space.
     match = re.match(r'(\d+\.)+\s', line)
     if match:
-        # Extract the actual content, excluding the markdown numbered prefix (e.g., "1. ")
-        content = line[match.end():]  # Strip the numbers and period, leave the content.
-        
-        #Debugging
-        content += 'THIS GOT NUMBERED'
+        # Extract the actual content, including the markdown numbered prefix (e.g., "1. ")
+        number = line[:match.end()]  # Include the numbers and period
+        content = line[match.end():]  # Extract the content after the numbers
+        whole = number + content
 
-        # Depending on the indent level, we might want to adjust the style
-        if indent_level == 0:
-            style = 'List Number'
-        elif indent_level == 1:
-            style = 'List Number 2'  # Assuming 'List Number 2' is defined in your Word styles
-        elif indent_level == 2:
-            style = 'List Number 3'  # Assuming 'List Number 3' is defined in your Word styles
-        else:
-            style = 'List Number'  # Default to normal numbering for deeper indents or unexpected cases
+        # Create a new paragraph and set the line height to 1.0
+        number_item = doc.add_paragraph()
+        number_item.paragraph_format.line_spacing = 1.0
 
-        # Create a new numbered list item with the specified style
-        number_item = doc.add_paragraph(style=style)
+        # Apply the indent level
+        number_item.paragraph_format.left_indent = Inches(0.25 * indent_level)  # 36 points per indent level (adjust as needed)
 
-        # Instead of adding text directly, process the content for formatting
-        runs = process_for_formatting(content)
+         # Instead of adding text directly, process the content for formatting
+        runs = process_for_formatting(whole)
         runs = process_for_superscript(runs)
         for run_text, run_style in runs:
             add_run(number_item, run_text, run_style)  # Apply the styles per run
 
-        return True  # The line was a numbered list item and was processed
+        return True  # The line was a bullet point and was processed
 
     return False  # The line was not a numbered list item
+
 
 
 
