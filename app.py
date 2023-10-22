@@ -6,6 +6,7 @@ from docx.shared import Inches
 import tempfile
 import shutil
 import os
+import base64
 
 
 hide_streamlit_style = """
@@ -44,12 +45,17 @@ if convert_button:
 
       # Serve the file for download from the temporary directory
       with open(temp_file_path, 'rb') as file:
-        st.download_button(
-            label="Stáhnout Microsoft Word",
-            data=file,
-            file_name=f"{filename}.docx",
-            mime=
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        file_contents = file.read()
+        encoded_file = base64.b64encode(file_contents).decode()
+        
+        st.markdown(
+            f'<a href="data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,{encoded_file}" '
+            f'download="{filename}.docx">'
+            f'<button style="cursor: pointer; background-color: #008CBA; color: white; padding: 10px 20px; border: none; border-radius: 5px;">'
+            f'Stáhnout Microsoft Word'
+            f'</button>'
+            f'</a>',
+            unsafe_allow_html=True
         )
 
       # The temporary file and directory will be automatically deleted after serving the download
