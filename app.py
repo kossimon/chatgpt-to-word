@@ -20,7 +20,7 @@ st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 # Step 3: Create UI elements
 markdown_text = st.text_area('Vložte obsah z ChatGPT zde',
-                              height=500,
+                              height=300,
                               label_visibility="collapsed")
 convert_button = st.button('Vytvořit Microsoft Word')
 
